@@ -1,0 +1,164 @@
+{
+    "name": "dataflowtpe2",
+    "properties": {
+        "type": "MappingDataFlow",
+        "typeProperties": {
+            "sources": [
+                {
+                    "dataset": {
+                        "referenceName": "dsscdtype2stage",
+                        "type": "DatasetReference"
+                    },
+                    "name": "source1"
+                },
+                {
+                    "dataset": {
+                        "referenceName": "dsscdtype2target",
+                        "type": "DatasetReference"
+                    },
+                    "name": "employeetarget"
+                }
+            ],
+            "sinks": [
+                {
+                    "dataset": {
+                        "referenceName": "dsscdtype2target",
+                        "type": "DatasetReference"
+                    },
+                    "name": "sink1"
+                },
+                {
+                    "dataset": {
+                        "referenceName": "dsscdtype2target",
+                        "type": "DatasetReference"
+                    },
+                    "name": "sink2"
+                }
+            ],
+            "transformations": [
+                {
+                    "name": "derivedColumn1"
+                },
+                {
+                    "name": "lookup1"
+                },
+                {
+                    "name": "select1"
+                },
+                {
+                    "name": "filter1"
+                },
+                {
+                    "name": "select2"
+                },
+                {
+                    "name": "derivedColumn2"
+                },
+                {
+                    "name": "alterRow1"
+                }
+            ],
+            "scriptLines": [
+                "source(output(",
+                "          empid as integer,",
+                "          empname as string,",
+                "          gender as string,",
+                "          country as string",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     isolationLevel: 'READ_UNCOMMITTED',",
+                "     format: 'table') ~> source1",
+                "source(output(",
+                "          empsurrkey as integer,",
+                "          empid as integer,",
+                "          empname as string,",
+                "          gender as string,",
+                "          country as string,",
+                "          isactive as integer",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     isolationLevel: 'READ_UNCOMMITTED',",
+                "     format: 'table') ~> employeetarget",
+                "source1 derive(isActive = 1) ~> derivedColumn1",
+                "select1, employeetarget lookup(empidsource == empid,",
+                "     multiple: false,",
+                "     pickup: 'any',",
+                "     broadcast: 'auto')~> lookup1",
+                "source1 select(mapColumn(",
+                "          empidsource = empid,",
+                "          empnamesource = empname,",
+                "          gendersource = gender,",
+                "          countrysource = country",
+                "     ),",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true) ~> select1",
+                "lookup1 filter(!isNull(empid)) ~> filter1",
+                "filter1 select(mapColumn(",
+                "          empidsource,",
+                "          empnamesource,",
+                "          gendersource,",
+                "          countrysource",
+                "     ),",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true) ~> select2",
+                "select2 derive(isActive = 0) ~> derivedColumn2",
+                "derivedColumn2 alterRow(updateIf(1==1)) ~> alterRow1",
+                "derivedColumn1 sink(allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     input(",
+                "          empsurrkey as integer,",
+                "          empid as integer,",
+                "          empname as string,",
+                "          gender as string,",
+                "          country as string,",
+                "          isactive as integer",
+                "     ),",
+                "     deletable:false,",
+                "     insertable:true,",
+                "     updateable:false,",
+                "     upsertable:false,",
+                "     format: 'table',",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true,",
+                "     saveOrder: 2,",
+                "     errorHandlingOption: 'stopOnFirstError',",
+                "     mapColumn(",
+                "          empid,",
+                "          empname,",
+                "          gender,",
+                "          country,",
+                "          isactive = isActive",
+                "     )) ~> sink1",
+                "alterRow1 sink(allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     input(",
+                "          empsurrkey as integer,",
+                "          empid as integer,",
+                "          empname as string,",
+                "          gender as string,",
+                "          country as string,",
+                "          isactive as integer",
+                "     ),",
+                "     deletable:false,",
+                "     insertable:false,",
+                "     updateable:true,",
+                "     upsertable:false,",
+                "     keys:['empid'],",
+                "     format: 'table',",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true,",
+                "     saveOrder: 1,",
+                "     errorHandlingOption: 'stopOnFirstError',",
+                "     mapColumn(",
+                "          empid = empidsource,",
+                "          empname = empnamesource,",
+                "          gender = gendersource,",
+                "          country = countrysource,",
+                "          isactive = isActive",
+                "     )) ~> sink2"
+            ]
+        }
+    }
+}
